@@ -18,11 +18,11 @@ namespace Neural
     public partial class FormDrawNeurons : Form
     {
         //Neural Net options
-        private double[,] data = new double[0, 0];
+        private double[,] data = null;
         private InputLayer _inputLayer;
         private HiddenLayer[] _hiddenLayers;
         private OutputLayer _output;
-        private double[][][] tempWeights;
+        private double[][][][] tempWeights;
 
         //draw options
         private SolidBrush _myBrush = new SolidBrush(Color.Blue);
@@ -92,61 +92,55 @@ namespace Neural
          */
         private void setNeuronsDataGrid() 
         { 
-            for (int i = 0; i < network.Layers.Length-1; i++)
+            for (int i = 0; i < network.Layers.Length; i++)
             {
                 for (int j = 0; j < network.Layers[i].Neurons.Length; j++)
                 {
-                                                                               //в массиве весов нейрона, в данном случае всегда 1 вес
-                    this.dataGridView1.Rows.Add((i+1).ToString(), j.ToString(), network.Layers[i].Neurons[j].Weights[0].ToString());
+                    for (int k = 0; k < network.Layers[i].Neurons[j].Weights.Length; k++ )
+
+                        this.dataGridView1.Rows.Add(i.ToString(), j.ToString(), k.ToString(), network.Layers[i].Neurons[j].Weights[k].ToString(), "F");
                 }
             }
 
         }
 
-        //При загрузке отрисовываем топологию
-        private void FormDrawNeurons_Load_1(object sender, EventArgs e)
-        {
-           // draw();
-        }
-
         //Запуск сети для проверки
-        private void button1_Click(object sender, EventArgs e)
+        private void CheckNeurons()
         {
             for (int i = 0; i < this.dataGridView1.RowCount; i++)
             {
-                int layer = Int32.Parse(dataGridView1.Rows[i].Cells[0].Value.ToString()) - 1;
+                int layer = Int32.Parse(dataGridView1.Rows[i].Cells[0].Value.ToString());
                 int neuron = Int32.Parse(dataGridView1.Rows[i].Cells[1].Value.ToString());
+                int weight = Int32.Parse(dataGridView1.Rows[i].Cells[2].Value.ToString());
 
-                //если стоит галочка, значит отключаем нейрон и записываем его вес во временной массив,
+                //если стоит галочка и до этого момента нейрон не отключался, значит отключаем нейрон и записываем его вес во временный массив,
                 //чтобы потом можно было обратно включить нейрон
-                if (this.dataGridView1.Rows[i].Cells[2].Value == "T")
+                if ((this.dataGridView1.Rows[i].Cells[4].Value.ToString() == "T".ToString()) &&
+                    network.Layers[layer].Neurons[neuron].Weights[weight] != 0.0)
                 {
-                    tempWeights[layer][neuron][0] = network.Layers[layer].Neurons[neuron].Weights[0];
-                    network.Layers[layer].Neurons[neuron].Weights[0] = 0.0;
-                    this._hiddenLayers[layer].setOffNeuron(neuron);
+                    tempWeights[layer][neuron][weight][0] = network.Layers[layer].Neurons[neuron].Weights[weight];
+                    network.Layers[layer].Neurons[neuron].Weights[weight] = 0.0;
+                    //this._hiddenLayers[layer].setOffNeuron(neuron);
+                    this.dataGridView1.Rows[i].Cells[3].Value = 0.0.ToString();
                 }
                 else {
                     //если галочка не стоит, и вес этого нейрона записан в временном массиве,
                     //значит он был отключен, а сейчас его нужно включить
-                    if (tempWeights[layer][neuron][0] != 0.0)
+                    if (tempWeights[layer][neuron][weight][0] != 0.0)
                     {
-                        network.Layers[layer].Neurons[neuron].Weights[0] = tempWeights[layer][neuron][0];
-                        tempWeights[layer][neuron][0] = 0.0;
-                        this._hiddenLayers[layer].setOnNeuron(neuron);
+                        network.Layers[layer].Neurons[neuron].Weights[weight] = tempWeights[layer][neuron][weight][0];
+                        tempWeights[layer][neuron][weight][0] = 0.0;
+                        //this._hiddenLayers[layer].setOnNeuron(neuron);
+                        this.dataGridView1.Rows[i].Cells[3].Value = network.Layers[layer].Neurons[neuron].Weights[weight].ToString();
                     }
                 }
             }
 
             draw();
-
-            double[,] tempData = new double[data.GetLength(0) + 1, 2];
-            Array.Copy(data, 0, tempData, 0, data.GetLength(0) * 2);
-
-           
         }
 
         /**
-         * Загрузка нейронной сети
+         * Запуск потока загрузки нейронной сети
          * */
         private void LoadNetToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -157,6 +151,9 @@ namespace Neural
             
         }
 
+        /**
+         * Загрузка нейронной сети
+         * */
         private void LoadNet()
         {
             // Initialize the OpenFileDialog to look for text files.
@@ -202,19 +199,108 @@ namespace Neural
                 this._hiddenLayers[i] = hidden;
             }
 
-            tempWeights = new double[network.Layers.Length][][];
+            tempWeights = new double[network.Layers.Length][][][];
             for (int i = 0; i < network.Layers.Length; i++)
             {
-                tempWeights[i] = new double[network.Layers[i].Neurons.Length][];
+                tempWeights[i] = new double[network.Layers[i].Neurons.Length][][];
                 for (int j = 0; j < network.Layers[i].Neurons.Length; j++)
                 {
-                    tempWeights[i][j] = new double[1];
+                    tempWeights[i][j] = new double[network.Layers[i].Neurons[j].Weights.Length][];
+                    for (int k = 0; k < network.Layers[i].Neurons[j].Weights.Length; k++)
+                    {
+                        tempWeights[i][j][k] = new double[1];
+                        tempWeights[i][j][k][0] = network.Layers[i].Neurons[j].Weights[k];
+                    }
                 }
             }
 
-            //output
-            //OutputLayer output = new OutputLayer(1);
             this._output = new OutputLayer(1);
+        }
+
+        /**
+         * Загрузка выборки
+         * */
+        private void loadTestData()
+        {
+
+            // show file selection dialog
+            if (openFileDialog2.ShowDialog() == DialogResult.OK)
+            {
+                StreamReader reader = null;
+
+                try
+                {
+                    // open selected file
+                    reader = File.OpenText(openFileDialog2.FileName);
+
+                    //get count values
+                    String line;
+                    int rowCount = 0;
+
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        rowCount++;
+                    }
+                    double[,] tempData = new double[rowCount, 3];
+
+                    reader.BaseStream.Seek(0, SeekOrigin.Begin);
+                    line = "";
+                    int i = 0;
+
+
+                    // read the data
+                    while ((i < rowCount) && ((line = reader.ReadLine()) != null))
+                    {
+                        string[] strs = line.Split('-');
+                        // parse input and output values for learning
+                        tempData[i, 0] = double.Parse(strs[0]);
+                        tempData[i, 1] = double.Parse(strs[1]);
+                        tempData[i, 2] = double.Parse(strs[2]);
+
+                        i++;
+                    }
+
+                    // allocate and set data
+                    data = new double[i, 3];
+                    Array.Copy(tempData, 0, data, 0, i * 3);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("Failed reading the file", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                finally
+                {
+                    // close file
+                    if (reader != null)
+                        reader.Close();
+                    Worker.Abort();
+                }
+            }
+        }
+
+        /**
+         * Вызов потока загрузки выборки
+         * */
+        private void LoadDataToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Worker = new Thread(loadTestData);
+            Worker.SetApartmentState(ApartmentState.STA);
+            Worker.Start();
+        }
+
+        /**
+         * Процент ошибки при тестировании на выбранной выборке
+         * */
+        private void testNetButton_Click(object sender, EventArgs e)
+        {
+            this.CheckNeurons();
+            double testError = 0.0;
+            for (int i = 0; i < data.GetLength(0); i++)
+            {
+                testError += Math.Abs(network.Compute(new double[2] { data[i, 0], data[i, 1] })[0] - data[i,2]);
+            }
+            this.testErrorLabel.Text = (testError/data.GetLength(0)).ToString("F10");
         }
 
 
