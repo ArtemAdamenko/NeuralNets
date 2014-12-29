@@ -19,6 +19,8 @@ namespace Neural
     public partial class Form1 : Form
     {
         private double[,] data = null;
+        int rowCountData = 0;
+        int colCountData = 0;
 
         private double learningRate = 0.1;
         private double momentum = 0.0;
@@ -76,16 +78,23 @@ namespace Neural
                     // open selected file
                     reader = File.OpenText(openFileDialog.FileName);
 
-                    //get count values
+                    //get row count values
                     String line;
-                    int rowCount = 0;
+                    rowCountData = 0;
+                    colCountData = 0;
+
+                    //get input and output count
+                    line = reader.ReadLine();
+                    rowCountData++;
+                    colCountData = line.Split('-').Length; 
 
                     while ((line = reader.ReadLine()) != null)
                     {
-                        rowCount++;
+                        rowCountData++;
                     }
-                    double[,] tempData = new double[rowCount, 3];
-                    int[] tempClasses = new int[rowCount];
+
+                    double[,] tempData = new double[rowCountData, colCountData];
+                    int[] tempClasses = new int[rowCountData];
 
                     reader.BaseStream.Seek(0, SeekOrigin.Begin);
                     line = "";
@@ -96,14 +105,19 @@ namespace Neural
 
 
                     // read the data
-                    while ((i < rowCount) && ((line = reader.ReadLine()) != null))
+                    while ((i < rowCountData) && ((line = reader.ReadLine()) != null))
                     {
                         string[] strs = line.Split('-');
                         // parse input and output values for learning
-                        //input
-                        tempData[i, 0] = double.Parse(strs[0]);
+                        //gather all values by cols
+                        for (int j = 0; j < colCountData; j++)
+                        {
+                            tempData[i, j] = double.Parse(strs[j]);
+                        }
+                        
+                        /*tempData[i, 0] = double.Parse(strs[0]);
                         tempData[i, 1] = double.Parse(strs[1]);
-                        tempData[i, 2] = double.Parse(strs[2]);
+                        tempData[i, 2] = double.Parse(strs[2]);*/
                         //output
                        /* tempClasses[i] = int.Parse(strs[2]);
 
@@ -122,8 +136,8 @@ namespace Neural
                     }
 
                     // allocate and set data
-                    data = new double[i, 3];
-                    Array.Copy(tempData, 0, data, 0, i * 3);
+                    data = new double[i, colCountData];
+                    Array.Copy(tempData, 0, data, 0, i * colCountData);
                     //classes = new int[i];
                    // Array.Copy(tempClasses, 0, classes, 0, i);
 
@@ -151,14 +165,30 @@ namespace Neural
         private void UpdateDataListView()
         {
             // remove all current records
-            dataList.Items.Clear();
-            // add new records
-            for (int i = 0, n = data.GetLength(0); i < n; i++)
+            this.dataGridView1.Rows.Clear();
+            int colCountGrid = this.dataGridView1.Columns.Count;
+            for (int c = 0; c < colCountGrid; c++)
             {
-                dataList.Items.Add(data[i, 0].ToString());
-                dataList.Items[i].SubItems.Add(data[i, 1].ToString());
-                dataList.Items[i].SubItems.Add(data[i, 2].ToString());
-                //dataList.Items[i].SubItems.Add(classes[i].ToString());
+                this.dataGridView1.Columns.Remove(c.ToString());
+            }
+
+            // add new records
+            //add columns to grid
+            int k = 0;
+            for (k = 0; k < colCountData-1; k++)
+            {
+                this.dataGridView1.Columns.Add(k.ToString(), "Input: " + k.ToString());
+            }
+            this.dataGridView1.Columns.Add(k.ToString(), "Output");
+
+            //add rows and values
+            for (int i = 0; i < rowCountData; i++)
+            {
+                dataGridView1.Rows.Add();
+                for (int j = 0; j < colCountData; j++)
+                {   
+                        this.dataGridView1.Rows[i].Cells[j].Value = data[i, j];
+                }
             }
         }
 

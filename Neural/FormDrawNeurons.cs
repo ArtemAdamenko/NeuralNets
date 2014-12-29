@@ -69,6 +69,8 @@ namespace Neural
 
             this._inputLayer.drawInputLayer(0, formGraphics);
 
+            Layer firstHiddenLayer = network.Layers[0];
+
             drawLines(formGraphics, this._myPen, this._inputLayer.getRightPoint(), this._hiddenLayers[0].getLeftPoints());
 
             for (int i = 0; i < this._hiddenLayers.Length - 1; i++)
@@ -126,7 +128,7 @@ namespace Neural
                 else {
                     //если галочка не стоит, и вес этого нейрона записан в временном массиве,
                     //значит он был отключен, а сейчас его нужно включить
-                    if (tempWeights[layer][neuron][weight][0] != 0.0)
+                    if ((this.dataGridView1.Rows[i].Cells[4].Value.ToString() == "F".ToString()) && tempWeights[layer][neuron][weight][0] != 0.0)
                     {
                         network.Layers[layer].Neurons[neuron].Weights[weight] = tempWeights[layer][neuron][weight][0];
                         tempWeights[layer][neuron][weight][0] = 0.0;
