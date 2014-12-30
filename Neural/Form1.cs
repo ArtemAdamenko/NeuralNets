@@ -9,6 +9,7 @@ using System.IO;
 using System.Windows.Forms;
 using System.Threading;
 using AForge;
+using System.Collections;
 using AForge.Controls;
 using AForge.Neuro;
 using AForge.Neuro.Learning;
@@ -22,6 +23,8 @@ namespace Neural
         int rowCountData = 0;
         int colCountData = 0;
 
+        String selectedItem = "";
+
         private double learningRate = 0.1;
         private double momentum = 0.0;
         private int iterations = 10000;
@@ -34,6 +37,9 @@ namespace Neural
         private bool needToStop = false;
         Random rnd = new Random();
         ActivationNetwork network;
+        IActivationFunction activationFunc;
+        BackPropagationLearning teacherBack = null;
+        PerceptronLearning teacherPerc = null;
 
         // Constructor
         public Form1()
@@ -45,6 +51,8 @@ namespace Neural
 
             // init controls
             UpdateSettings();
+            errorChart.AddDataSeries("error", Color.Red, Chart.SeriesType.ConnectedDots, 3);
+            errorChart.AddDataSeries("validate", Color.Blue, Chart.SeriesType.ConnectedDots, 2);
         }
 
         // On main form closing
@@ -63,6 +71,8 @@ namespace Neural
         {
             this.learningRateBox.Text = learningRate.ToString();
             this.momentumBox.Text = momentum.ToString();
+            this.typeNetBox.Items.Add("Регрессия");
+            this.typeNetBox.Items.Add("Классификация");
         }
 
         // Load data
@@ -73,8 +83,8 @@ namespace Neural
             {
                 StreamReader reader = null;
                 
-                try
-                {
+                    try
+                    {
                     // open selected file
                     reader = File.OpenText(openFileDialog.FileName);
 
@@ -86,7 +96,11 @@ namespace Neural
                     //get input and output count
                     line = reader.ReadLine();
                     rowCountData++;
-                    colCountData = line.Split('-').Length; 
+                    colCountData = line.Split('-').Length;
+
+                    //must be > 1 column in training data
+                    if (colCountData == 1)
+                        throw new Exception();
 
                     while ((line = reader.ReadLine()) != null)
                     {
@@ -94,15 +108,10 @@ namespace Neural
                     }
 
                     double[,] tempData = new double[rowCountData, colCountData];
-                    int[] tempClasses = new int[rowCountData];
 
                     reader.BaseStream.Seek(0, SeekOrigin.Begin);
                     line = "";
                     int i = 0;
-                    // classes count
-                    classesCount = 0;
-                    samplesPerClass = new int[10];
-
 
                     // read the data
                     while ((i < rowCountData) && ((line = reader.ReadLine()) != null))
@@ -114,23 +123,6 @@ namespace Neural
                         {
                             tempData[i, j] = double.Parse(strs[j]);
                         }
-                        
-                        /*tempData[i, 0] = double.Parse(strs[0]);
-                        tempData[i, 1] = double.Parse(strs[1]);
-                        tempData[i, 2] = double.Parse(strs[2]);*/
-                        //output
-                       /* tempClasses[i] = int.Parse(strs[2]);
-
-                        // skip classes over 10, except only first 10 classes
-                        if (tempClasses[i] >= 10)
-                            continue;
-
-                        // count the amount of different classes
-                        if (tempClasses[i] >= classesCount)
-                            classesCount = tempClasses[i] + 1;
-                        // count samples per class
-                        samplesPerClass[tempClasses[i]]++;*/
-
 
                         i++;
                     }
@@ -138,13 +130,11 @@ namespace Neural
                     // allocate and set data
                     data = new double[i, colCountData];
                     Array.Copy(tempData, 0, data, 0, i * colCountData);
-                    //classes = new int[i];
-                   // Array.Copy(tempClasses, 0, classes, 0, i);
 
                 }
                 catch (Exception)
                 {
-                    MessageBox.Show("Failed reading the file", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Ошибка чтения файла", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
                 finally
@@ -153,7 +143,7 @@ namespace Neural
                     if (reader != null)
                         reader.Close();
                 }
-
+                
                 // update list and chart
                 UpdateDataListView();
                 // enable "Start" button
@@ -249,6 +239,18 @@ namespace Neural
                 neuronsAndLayers[1] = 1;
             }
 
+            //get type of neural net
+            selectedItem = this.typeNetBox.SelectedItem.ToString();
+            if (selectedItem == "Регрессия")
+            {
+                neuronsAndLayers[1] = 1;
+            }
+            else if (selectedItem == "Классификация")
+            {
+                checkForClassification();
+                neuronsAndLayers[1] = classesCount;
+            }
+
             // update settings controls
             UpdateSettings();
 
@@ -259,6 +261,44 @@ namespace Neural
             needToStop = false;
             workerThread = new Thread(new ThreadStart(SearchSolution));
             workerThread.Start();
+        }
+
+        //проверка входящей выборки на классы
+        private void checkForClassification()
+        {
+            int[] tempClasses = new int[rowCountData];
+            // classes count
+            classesCount = 0;
+            samplesPerClass = new int[10];
+            try
+            {
+                int i = 0;
+                for (i = 0; i < data.GetLength(0); i++)
+                {
+                    //get output as classes
+                    tempClasses[i] = int.Parse(data[i, colCountData - 1].ToString());
+
+                    if (tempClasses[i] >= 10)
+                        continue;
+                    
+                    // count the amount of different classes
+                    if (tempClasses[i] >= classesCount)
+                        classesCount = tempClasses[i] + 1;
+                    // count samples per class
+                    samplesPerClass[tempClasses[i]]++;
+                }
+                classes = new int[i];
+                Array.Copy(tempClasses, 0, classes, 0, i);
+            }
+            catch(Exception e) {
+                MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+        }
+
+        private void checkForRegression()
+        {
+ 
         }
 
         // On button "Stop"
@@ -281,72 +321,145 @@ namespace Neural
             double[][] validateInput = new double[samples / 5][];
             double[][] validateOutput = new double[samples / 5][];
 
-            IActivationFunction n = null;
             // create multi-layer neural network
 
-            n = new ThresholdFunction();
+            if (selectedItem == "Классификация")
+            {
+                activationFunc = new ThresholdFunction();
+            }
+            else if (selectedItem == "Регрессия")
+            {
+                activationFunc = new SigmoidFunction();
+            }
+            
             int k = 0;
             int j = 0;
 
             for (int i = 1; i < samples; i++)
             {
                 //80% training, 20% for validate data(to do 70% lear., 20% validate, 10% test)
-                if ((i % 5) == 0)
-                {
-                    validateInput[k] = new double[2];
+                if ((i % 5) == 0) // validate input 20 %
+                {                               
+                    validateInput[k] = new double[colCountData-1];
                     validateOutput[k] = new double[1];
 
-                    validateInput[k][0] = data[i, 0];
-                    validateInput[k][1] = data[i, 1];
-                    validateOutput[k][0] = data[i, 2];
+                    for (int c = 0; c < colCountData - 1; c++)
+                    {
+                        validateInput[k][c] = data[i, c];
+                    }
+                    
+                    validateOutput[k][0] = data[i, colCountData-1];
                     k++;
                 }
-                else
+                else //forward input 80 %
                 {
-                    input[j] = new double[2];
-                    //output[i] = new double[classesCount];
-                    output[j] = new double[1];
+                    // input data
+                    input[j] = new double[colCountData-1];
 
-                    input[j][0] = data[i, 0];
-                    input[j][1] = data[i, 1];
-                    //output[i][classes[i]] = 1;
-                    output[j][0] = data[i, 2];
+                    for (int c = 0; c < colCountData - 1; c++)
+                    {
+                        input[j][c] = data[i, c];
+                    }
+
+                    //output data
+                    if (selectedItem == "Классификация")
+                    {
+                        output[j] = new double[classesCount];
+                        output[j][classes[j]] = 1;
+                    }
+                    else if (selectedItem == "Регрессия")
+                    {
+                        output[j] = new double[1];
+                        output[j][0] = data[i, colCountData - 1];
+                    }
+                    
                     j++;
                 }
             }
 
-            network = new ActivationNetwork(new  SigmoidFunction(),
-            2, neuronsAndLayers);
+            network = new ActivationNetwork(activationFunc,
+            colCountData-1, neuronsAndLayers);
             // create teacher
-            BackPropagationLearning teacher = new BackPropagationLearning(network);
-            //PerceptronLearning teacher = new PerceptronLearning(network);
-
-            // set learning rate and momentum
-            teacher.LearningRate = learningRate;
-            teacher.Momentum = momentum;
+            if (selectedItem == "Классификация")
+            {
+                teacherPerc = new PerceptronLearning(network);
+                // set learning rate and momentum
+                teacherPerc.LearningRate = learningRate;
+            }
+            else if (selectedItem == "Регрессия")
+            {
+                teacherBack = new BackPropagationLearning(network);
+                // set learning rate and momentum
+                teacherBack.LearningRate = learningRate;
+                teacherBack.Momentum = momentum;
+            }
 
             // iterations
             int iteration = 1;
             double error = 0.0;
             double[] validateError = new double[1]{0.0};
             //int j = 0;
+            // erros list
+            ArrayList errorsList = new ArrayList();
+            ArrayList validateList = new ArrayList();
             // loop
             while (!needToStop)
             {
 
                     // run epoch of learning procedure
-                    error = teacher.RunEpoch(input, output);
+                    if (selectedItem == "Классификация")
+                    {
+                        error = teacherPerc.RunEpoch(input, output);
+                    }
+                    else if (selectedItem == "Регрессия")
+                    {
+                        error = teacherBack.RunEpoch(input, output);
+                        if (errorsList.Count - 1 >= 1000)
+                        {
+                            errorsList.RemoveAt(0);
+                            
+                        }
+                        errorsList.Add(error);
+                        
+                    }
+                    //error = teacher.RunEpoch(input, output);
                     validateError[0] = 0.0;
                     for (int count = 0; count < validateInput.GetLength(0)-1; count++)
                     {
                         validateError[0] += network.Compute(validateInput[count])[0] - validateOutput[count][0];
                     }
+                    if (validateList.Count - 1 >= 1000)
+                    {
+                        validateList.RemoveAt(0);
+
+                    }
+                    validateList.Add(validateError[0]);
 
                         // set current iteration's info
                     currentIterationBox.Invoke(new Action<string>((s) => currentIterationBox.Text = s), iteration.ToString());
                     errorPercent.Invoke(new Action<string>((s) => errorPercent.Text = s), error.ToString("F14"));
                     validErrorBox.Invoke(new Action<string>((s) => validErrorBox.Text = s), (validateError[0]/1000).ToString("F14"));
-                    // increase current iteration
+                    // show error's dynamics
+                    double[,] errors = new double[errorsList.Count, 2];
+                    double[,] valid = new double[validateList.Count, 2];
+
+                    for (int i = 0, n = errorsList.Count; i < n; i++)
+                    {
+                        errors[i, 0] = i;
+                        errors[i, 1] = (double)errorsList[i];
+                    }
+
+                    for (int i = 0, n = validateList.Count; i < n; i++)
+                    {
+                        valid[i, 0] = i;
+                        valid[i, 1] = (double)validateList[i];
+                    }
+
+                    errorChart.RangeX = new Range(1, errorsList.Count - 1);
+                    errorChart.UpdateDataSeries("error", errors);
+                    errorChart.UpdateDataSeries("validate", valid);
+    
+                // increase current iteration
                     iteration++;
             }
             // enable settings controls

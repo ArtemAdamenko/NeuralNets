@@ -27,6 +27,7 @@ namespace Neural
     /// </summary>
     public partial class Form1 : System.Windows.Forms.Form
     {
+        private AForge.Controls.Chart errorChart;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.Button loadDataButton;
         private System.Windows.Forms.OpenFileDialog openFileDialog;
@@ -71,10 +72,15 @@ namespace Neural
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            this.errorChart = new AForge.Controls.Chart();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.loadDataButton = new System.Windows.Forms.Button();
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.typeNetBox = new System.Windows.Forms.ComboBox();
             this.neuronsBox = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
             this.momentumBox = new System.Windows.Forms.TextBox();
@@ -96,14 +102,23 @@ namespace Neural
             this.SaveNetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.TestNetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ViewTopologyNetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.groupBox5.SuspendLayout();
             this.menuStrip1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
+            // 
+            // errorChart
+            // 
+            this.errorChart.Location = new System.Drawing.Point(391, 27);
+            this.errorChart.Name = "errorChart";
+            this.errorChart.RangeX = ((AForge.Range)(resources.GetObject("errorChart.RangeX")));
+            this.errorChart.RangeY = ((AForge.Range)(resources.GetObject("errorChart.RangeY")));
+            this.errorChart.Size = new System.Drawing.Size(329, 450);
+            this.errorChart.TabIndex = 3;
+            this.errorChart.Text = "chart1";
             // 
             // groupBox1
             // 
@@ -111,10 +126,20 @@ namespace Neural
             this.groupBox1.Controls.Add(this.loadDataButton);
             this.groupBox1.Location = new System.Drawing.Point(3, 24);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(464, 459);
+            this.groupBox1.Size = new System.Drawing.Size(382, 459);
             this.groupBox1.TabIndex = 1;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Выборка";
+            // 
+            // dataGridView1
+            // 
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AllowUserToDeleteRows = false;
+            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.Location = new System.Drawing.Point(6, 19);
+            this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.Size = new System.Drawing.Size(370, 405);
+            this.dataGridView1.TabIndex = 2;
             // 
             // loadDataButton
             // 
@@ -132,18 +157,36 @@ namespace Neural
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.label2);
+            this.groupBox3.Controls.Add(this.typeNetBox);
             this.groupBox3.Controls.Add(this.neuronsBox);
             this.groupBox3.Controls.Add(this.label4);
             this.groupBox3.Controls.Add(this.momentumBox);
             this.groupBox3.Controls.Add(this.label6);
             this.groupBox3.Controls.Add(this.learningRateBox);
             this.groupBox3.Controls.Add(this.label1);
-            this.groupBox3.Location = new System.Drawing.Point(473, 27);
+            this.groupBox3.Location = new System.Drawing.Point(723, 27);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(195, 99);
+            this.groupBox3.Size = new System.Drawing.Size(195, 123);
             this.groupBox3.TabIndex = 4;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Настройки";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(10, 97);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(32, 13);
+            this.label2.TabIndex = 9;
+            this.label2.Text = "Тип :";
+            // 
+            // typeNetBox
+            // 
+            this.typeNetBox.Location = new System.Drawing.Point(68, 97);
+            this.typeNetBox.Name = "typeNetBox";
+            this.typeNetBox.Size = new System.Drawing.Size(121, 21);
+            this.typeNetBox.TabIndex = 8;
             // 
             // neuronsBox
             // 
@@ -199,7 +242,7 @@ namespace Neural
             this.groupBox4.Controls.Add(this.label3);
             this.groupBox4.Controls.Add(this.currentIterationBox);
             this.groupBox4.Controls.Add(this.label5);
-            this.groupBox4.Location = new System.Drawing.Point(473, 132);
+            this.groupBox4.Location = new System.Drawing.Point(723, 156);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(195, 100);
             this.groupBox4.TabIndex = 6;
@@ -279,7 +322,7 @@ namespace Neural
             // 
             this.groupBox5.Controls.Add(this.startButton);
             this.groupBox5.Controls.Add(this.stopButton);
-            this.groupBox5.Location = new System.Drawing.Point(473, 238);
+            this.groupBox5.Location = new System.Drawing.Point(723, 262);
             this.groupBox5.Name = "groupBox5";
             this.groupBox5.Size = new System.Drawing.Size(195, 53);
             this.groupBox5.TabIndex = 11;
@@ -294,7 +337,7 @@ namespace Neural
             this.ViewTopologyNetToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(680, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(918, 24);
             this.menuStrip1.TabIndex = 19;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -319,20 +362,11 @@ namespace Neural
             this.ViewTopologyNetToolStripMenuItem.Text = "Топология";
             this.ViewTopologyNetToolStripMenuItem.Click += new System.EventHandler(this.ViewTopologyNetToolStripMenuItem_Click);
             // 
-            // dataGridView1
-            // 
-            this.dataGridView1.AllowUserToAddRows = false;
-            this.dataGridView1.AllowUserToDeleteRows = false;
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Location = new System.Drawing.Point(6, 19);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.Size = new System.Drawing.Size(452, 405);
-            this.dataGridView1.TabIndex = 2;
-            // 
             // Form1
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
-            this.ClientSize = new System.Drawing.Size(680, 483);
+            this.ClientSize = new System.Drawing.Size(918, 483);
+            this.Controls.Add(this.errorChart);
             this.Controls.Add(this.groupBox5);
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
@@ -345,6 +379,7 @@ namespace Neural
             this.Text = "Обучение многослойной нейронной сети";
             this.Closing += new System.ComponentModel.CancelEventHandler(this.Form1_Closing);
             this.groupBox1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
             this.groupBox4.ResumeLayout(false);
@@ -352,7 +387,6 @@ namespace Neural
             this.groupBox5.ResumeLayout(false);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -369,6 +403,8 @@ namespace Neural
         private ToolStripMenuItem TestNetToolStripMenuItem;
         private ToolStripMenuItem ViewTopologyNetToolStripMenuItem;
         private DataGridView dataGridView1;
+        private Label label2;
+        private ComboBox typeNetBox;
 
     }
 }
