@@ -19,6 +19,9 @@ namespace Neural
     {
         //Neural Net options
         private double[,] data = null;
+        int rowCountData = 0;
+        int colCountData = 0;
+
         private InputLayer _inputLayer;
         private HiddenLayer[] _hiddenLayers;
         private OutputLayer _output;
@@ -235,40 +238,53 @@ namespace Neural
                     // open selected file
                     reader = File.OpenText(openFileDialog2.FileName);
 
-                    //get count values
+                    //get row count values
                     String line;
-                    int rowCount = 0;
+                    rowCountData = 0;
+                    colCountData = 0;
+
+                    //get input and output count
+                    line = reader.ReadLine();
+                    rowCountData++;
+                    colCountData = line.Split(';').Length;
+
+                    //must be > 1 column in training data
+                    if (colCountData == 1)
+                        throw new Exception();
 
                     while ((line = reader.ReadLine()) != null)
                     {
-                        rowCount++;
+                        rowCountData++;
                     }
-                    double[,] tempData = new double[rowCount, 3];
+
+                    double[,] tempData = new double[rowCountData, colCountData];
 
                     reader.BaseStream.Seek(0, SeekOrigin.Begin);
                     line = "";
                     int i = 0;
 
-
                     // read the data
-                    while ((i < rowCount) && ((line = reader.ReadLine()) != null))
+                    while ((i < rowCountData) && ((line = reader.ReadLine()) != null))
                     {
-                        string[] strs = line.Split('-');
+                        string[] strs = line.Split(';');
                         // parse input and output values for learning
-                        tempData[i, 0] = double.Parse(strs[0]);
-                        tempData[i, 1] = double.Parse(strs[1]);
-                        tempData[i, 2] = double.Parse(strs[2]);
+                        //gather all values by cols
+                        for (int j = 0; j < colCountData; j++)
+                        {
+                            tempData[i, j] = double.Parse(strs[j]);
+                        }
 
                         i++;
                     }
 
                     // allocate and set data
-                    data = new double[i, 3];
-                    Array.Copy(tempData, 0, data, 0, i * 3);
+                    data = new double[i, colCountData];
+                    Array.Copy(tempData, 0, data, 0, i * colCountData);
+
                 }
                 catch (Exception)
                 {
-                    MessageBox.Show("Failed reading the file", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Ошибка чтения файла", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
                 finally
@@ -276,7 +292,6 @@ namespace Neural
                     // close file
                     if (reader != null)
                         reader.Close();
-                    Worker.Abort();
                 }
             }
         }

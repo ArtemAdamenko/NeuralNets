@@ -23,15 +23,10 @@ namespace Neural
         int rowCountData = 0;
         int colCountData = 0;
 
-        String selectedItem = "";
-
         private double learningRate = 0.1;
         private double momentum = 0.0;
-        private int iterations = 10000;
         private int[] neuronsAndLayers;
-        private int[] classes;
-        private int classesCount;
-        private int[] samplesPerClass;
+        private double alpha = 1.0;
 
         private Thread workerThread = null;
         private bool needToStop = false;
@@ -39,7 +34,6 @@ namespace Neural
         ActivationNetwork network;
         IActivationFunction activationFunc;
         BackPropagationLearning teacherBack = null;
-        PerceptronLearning teacherPerc = null;
 
         // Constructor
         public Form1()
@@ -51,8 +45,10 @@ namespace Neural
 
             // init controls
             UpdateSettings();
+            validChart.AddDataSeries("validate", Color.Blue, Chart.SeriesType.ConnectedDots, 2);
+            validChart.AddDataSeries("zero", Color.Black, Chart.SeriesType.ConnectedDots, 2);
             errorChart.AddDataSeries("error", Color.Red, Chart.SeriesType.ConnectedDots, 3);
-            errorChart.AddDataSeries("validate", Color.Blue, Chart.SeriesType.ConnectedDots, 2);
+            errorChart.AddDataSeries("zero", Color.Black, Chart.SeriesType.ConnectedDots, 2);
         }
 
         // On main form closing
@@ -71,8 +67,7 @@ namespace Neural
         {
             this.learningRateBox.Text = learningRate.ToString();
             this.momentumBox.Text = momentum.ToString();
-            this.typeNetBox.Items.Add("Регрессия");
-            this.typeNetBox.Items.Add("Классификация");
+            this.alphaBox1.Text = alpha.ToString();
         }
 
         // Load data
@@ -96,7 +91,7 @@ namespace Neural
                     //get input and output count
                     line = reader.ReadLine();
                     rowCountData++;
-                    colCountData = line.Split('-').Length;
+                    colCountData = line.Split(';').Length;
 
                     //must be > 1 column in training data
                     if (colCountData == 1)
@@ -116,7 +111,7 @@ namespace Neural
                     // read the data
                     while ((i < rowCountData) && ((line = reader.ReadLine()) != null))
                     {
-                        string[] strs = line.Split('-');
+                        string[] strs = line.Split(';');
                         // parse input and output values for learning
                         //gather all values by cols
                         for (int j = 0; j < colCountData; j++)
@@ -190,6 +185,8 @@ namespace Neural
             learningRateBox.Invoke(new Action(() => learningRateBox.Enabled = enable));
             
             momentumBox.Invoke(new Action(() => momentumBox.Enabled = enable));
+
+            alphaBox1.Invoke(new Action(() => alphaBox1.Enabled = enable));
             
             neuronsBox.Invoke(new Action(() => neuronsBox.Enabled = enable));
 
@@ -220,6 +217,15 @@ namespace Neural
             {
                 momentum = 0;
             }
+            // get alpha
+            try
+            {
+                alpha = Math.Max(0, Math.Min(2.0, double.Parse(alphaBox1.Text)));
+            }
+            catch
+            {
+                alpha = 1.0;
+            }
             // get neurons count in first layer
             try
             {
@@ -239,18 +245,6 @@ namespace Neural
                 neuronsAndLayers[1] = 1;
             }
 
-            //get type of neural net
-            selectedItem = this.typeNetBox.SelectedItem.ToString();
-            if (selectedItem == "Регрессия")
-            {
-                neuronsAndLayers[1] = 1;
-            }
-            else if (selectedItem == "Классификация")
-            {
-                checkForClassification();
-                neuronsAndLayers[1] = classesCount;
-            }
-
             // update settings controls
             UpdateSettings();
 
@@ -261,44 +255,6 @@ namespace Neural
             needToStop = false;
             workerThread = new Thread(new ThreadStart(SearchSolution));
             workerThread.Start();
-        }
-
-        //проверка входящей выборки на классы
-        private void checkForClassification()
-        {
-            int[] tempClasses = new int[rowCountData];
-            // classes count
-            classesCount = 0;
-            samplesPerClass = new int[10];
-            try
-            {
-                int i = 0;
-                for (i = 0; i < data.GetLength(0); i++)
-                {
-                    //get output as classes
-                    tempClasses[i] = int.Parse(data[i, colCountData - 1].ToString());
-
-                    if (tempClasses[i] >= 10)
-                        continue;
-                    
-                    // count the amount of different classes
-                    if (tempClasses[i] >= classesCount)
-                        classesCount = tempClasses[i] + 1;
-                    // count samples per class
-                    samplesPerClass[tempClasses[i]]++;
-                }
-                classes = new int[i];
-                Array.Copy(tempClasses, 0, classes, 0, i);
-            }
-            catch(Exception e) {
-                MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-        }
-
-        private void checkForRegression()
-        {
- 
         }
 
         // On button "Stop"
@@ -323,14 +279,15 @@ namespace Neural
 
             // create multi-layer neural network
 
-            if (selectedItem == "Классификация")
+            if (alpha > 0.0)
             {
-                activationFunc = new ThresholdFunction();
+                activationFunc = new SigmoidFunction(alpha);
             }
-            else if (selectedItem == "Регрессия")
+            else
             {
                 activationFunc = new SigmoidFunction();
             }
+            
             
             int k = 0;
             int j = 0;
@@ -362,16 +319,10 @@ namespace Neural
                     }
 
                     //output data
-                    if (selectedItem == "Классификация")
-                    {
-                        output[j] = new double[classesCount];
-                        output[j][classes[j]] = 1;
-                    }
-                    else if (selectedItem == "Регрессия")
-                    {
-                        output[j] = new double[1];
-                        output[j][0] = data[i, colCountData - 1];
-                    }
+
+                    output[j] = new double[1];
+                    output[j][0] = data[i, colCountData - 1];
+                    
                     
                     j++;
                 }
@@ -380,24 +331,15 @@ namespace Neural
             network = new ActivationNetwork(activationFunc,
             colCountData-1, neuronsAndLayers);
             // create teacher
-            if (selectedItem == "Классификация")
-            {
-                teacherPerc = new PerceptronLearning(network);
+            teacherBack = new BackPropagationLearning(network);
                 // set learning rate and momentum
-                teacherPerc.LearningRate = learningRate;
-            }
-            else if (selectedItem == "Регрессия")
-            {
-                teacherBack = new BackPropagationLearning(network);
-                // set learning rate and momentum
-                teacherBack.LearningRate = learningRate;
-                teacherBack.Momentum = momentum;
-            }
+            teacherBack.LearningRate = learningRate;
+            teacherBack.Momentum = momentum;
 
             // iterations
             int iteration = 1;
             double error = 0.0;
-            double[] validateError = new double[1]{0.0};
+            double validateError = 0.0;
             //int j = 0;
             // erros list
             ArrayList errorsList = new ArrayList();
@@ -407,46 +349,46 @@ namespace Neural
             {
 
                     // run epoch of learning procedure
-                    if (selectedItem == "Классификация")
+                    error = teacherBack.RunEpoch(input, output);
+                    if (errorsList.Count - 1 >= 2000)
                     {
-                        error = teacherPerc.RunEpoch(input, output);
+                        errorsList.RemoveAt(0);
+                        //errorsList.RemoveAt(0);
+                        errorsList[0] = 5.0;
                     }
-                    else if (selectedItem == "Регрессия")
-                    {
-                        error = teacherBack.RunEpoch(input, output);
-                        if (errorsList.Count - 1 >= 1000)
-                        {
-                            errorsList.RemoveAt(0);
-                            
-                        }
-                        errorsList.Add(error);
+                    errorsList.Add(error);
                         
-                    }
+                    
                     //error = teacher.RunEpoch(input, output);
-                    validateError[0] = 0.0;
+                    validateError = 0.0;
                     for (int count = 0; count < validateInput.GetLength(0)-1; count++)
                     {
-                        validateError[0] += network.Compute(validateInput[count])[0] - validateOutput[count][0];
+                        validateError += network.Compute(validateInput[count])[0] - validateOutput[count][0];
                     }
-                    if (validateList.Count - 1 >= 1000)
+                    if (validateList.Count - 1 >= 2000)
                     {
                         validateList.RemoveAt(0);
+                        validateList[0] = 5.0;
 
                     }
-                    validateList.Add(validateError[0]);
+                    validateList.Add(validateError);
 
                         // set current iteration's info
                     currentIterationBox.Invoke(new Action<string>((s) => currentIterationBox.Text = s), iteration.ToString());
                     errorPercent.Invoke(new Action<string>((s) => errorPercent.Text = s), error.ToString("F14"));
-                    validErrorBox.Invoke(new Action<string>((s) => validErrorBox.Text = s), (validateError[0]/1000).ToString("F14"));
+                    validErrorBox.Invoke(new Action<string>((s) => validErrorBox.Text = s), (validateError/1000).ToString("F14"));
                     // show error's dynamics
                     double[,] errors = new double[errorsList.Count, 2];
                     double[,] valid = new double[validateList.Count, 2];
+                    double[,] zeros = new double[errorsList.Count, 2];  
 
                     for (int i = 0, n = errorsList.Count; i < n; i++)
                     {
                         errors[i, 0] = i;
+                        zeros[i, 0] = i;
+
                         errors[i, 1] = (double)errorsList[i];
+                        zeros[i, 1] = 0.0;
                     }
 
                     for (int i = 0, n = validateList.Count; i < n; i++)
@@ -455,9 +397,14 @@ namespace Neural
                         valid[i, 1] = (double)validateList[i];
                     }
 
-                    errorChart.RangeX = new Range(1, errorsList.Count - 1);
+                    errorChart.RangeX = new Range(0, errorsList.Count - 1);
                     errorChart.UpdateDataSeries("error", errors);
-                    errorChart.UpdateDataSeries("validate", valid);
+                    errorChart.UpdateDataSeries("zero", zeros);
+                    
+
+                    validChart.RangeX = new Range(0, validateList.Count - 1);
+                    validChart.UpdateDataSeries("validate", valid);
+                    validChart.UpdateDataSeries("zero", zeros);
     
                 // increase current iteration
                     iteration++;
