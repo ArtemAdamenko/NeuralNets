@@ -22,14 +22,10 @@ namespace Neural
         int rowCountData = 0;
         int colCountData = 0;
 
-        private InputLayer _inputLayer;
-        private HiddenLayer[] _hiddenLayers;
-        private OutputLayer _output;
         private double[][][][] tempWeights;
 
         //draw options
         private SolidBrush _myBrush = new SolidBrush(Color.Blue);
-        private SolidBrush _offBrush = new SolidBrush(Color.Gray);
         private Pen _myPen = new Pen(Color.Black);
 
         //App options
@@ -39,20 +35,6 @@ namespace Neural
         public FormDrawNeurons()
         {
             InitializeComponent();
-        }
-
-        /**
-         * Нарисовать связующие линнии между слоями
-         * */
-        private static void drawLines(Graphics gr, Pen myPen, System.Drawing.Point[] layer1, System.Drawing.Point[] layer2)
-        {
-            for (int i = 0; i < layer1.Length; i++)
-            {
-                for (int j = 0; j < layer2.Length; j++)
-                {
-                    gr.DrawLine(myPen, layer1[i], layer2[j]);
-                }
-            }
         }
 
         public void draw()
@@ -65,28 +47,77 @@ namespace Neural
             bmp = new Bitmap(700, 530);
 
             formGraphics = Graphics.FromImage(bmp);
-            for (int i = 0; i < this._hiddenLayers.Length; i++)
+            int x = 0;
+
+            //draw input layer
+            int cntInput = network.InputsCount;
+            _myPen.Width = 3;
+            System.Drawing.Point[] fisrtPoints = new System.Drawing.Point[cntInput];
+
+            for (int k = 0; k < cntInput; k++) 
             {
-                this._hiddenLayers[i].drawHiddenLayer(200 * (i + 1), formGraphics);
+                Rectangle ellipse = new Rectangle(x, 50 * k, 100, 50);
+                formGraphics.FillEllipse(this._myBrush, ellipse);
+                formGraphics.DrawEllipse(this._myPen, ellipse);
+                fisrtPoints[k].X = x + 100;
+                fisrtPoints[k].Y = 50 * k + (50 / 2);
             }
 
-            this._inputLayer.drawInputLayer(0, formGraphics);
 
-            Layer firstHiddenLayer = network.Layers[0];
-
-            drawLines(formGraphics, this._myPen, this._inputLayer.getRightPoint(), this._hiddenLayers[0].getLeftPoints());
-
-            for (int i = 0; i < this._hiddenLayers.Length - 1; i++)
+            System.Drawing.Point[] tempRightPoints = new System.Drawing.Point[1];
+            //draw other layers
+            for (int i = 0; i < network.Layers.Length; i++)
             {
-                drawLines(formGraphics, this._myPen, this._hiddenLayers[i].getRightPoints(), this._hiddenLayers[i + 1].getLeftPoints());
+                x = 200 * (i+1);
+
+                System.Drawing.Point[] hiddenLeftPoints = new System.Drawing.Point[network.Layers[i].Neurons.Length];
+                System.Drawing.Point[] hiddenRightPoints = new System.Drawing.Point[network.Layers[i].Neurons.Length];
+
+                for (int j = 0; j < network.Layers[i].Neurons.Length; j++)
+                {
+                    _myPen.Color = Color.Black;
+                    Rectangle ellipse = new Rectangle(x, 50 * j, 100, 50);
+                    formGraphics.FillEllipse(this._myBrush, ellipse);
+                    formGraphics.DrawEllipse(this._myPen, ellipse);
+
+                    hiddenLeftPoints[j].X = x;
+                    hiddenLeftPoints[j].Y = 50 * j + (50 / 2);
+
+                    hiddenRightPoints[j].X = x + 100;
+                    hiddenRightPoints[j].Y = 50 * j + (50 / 2);
+
+                    //if this first hidden layer
+                    if (i == 0)
+                    {
+                        //all neurons n-1 layer
+                        for (int b = 0; b < fisrtPoints.Length; b++)
+                        {
+                            //if weight current neuron == 0.0
+                            if (network.Layers[i].Neurons[j].Weights[b] == 0.0)
+                                _myPen.Color = Color.Red;
+                            else
+                                _myPen.Color = Color.Black;
+                            formGraphics.DrawLine(_myPen, hiddenLeftPoints[j], fisrtPoints[b]);
+                        }
+                    }
+                    else if (i != 0)
+                    {
+                        for (int c = 0; c < network.Layers[i-1].Neurons.Length; c++)
+                        {
+                            //if weight current neuron == 0.0
+                            if (network.Layers[i].Neurons[j].Weights[c] == 0.0)
+                                _myPen.Color = Color.Red;
+                            else
+                                _myPen.Color = Color.Black;
+                            formGraphics.DrawLine(_myPen, hiddenLeftPoints[j], tempRightPoints[c]);
+                        }
+                    }
+                 }
+                //temp mass of right points of current layer for next cycle
+                tempRightPoints = new System.Drawing.Point[network.Layers[i].Neurons.Length];
+                tempRightPoints = hiddenRightPoints;
             }
 
-            this._output.drawOutputLayer(network.Layers.Length * 200, formGraphics);
-
-            HiddenLayer.RollbackNumberLayers();
-            drawLines(formGraphics, this._myPen, this._hiddenLayers[this._hiddenLayers.Length - 1].getRightPoints(), this._output.getLeftPoints());
-
-            
             pictureBox1.Image = bmp;
         }
 
@@ -125,7 +156,6 @@ namespace Neural
                 {
                     tempWeights[layer][neuron][weight][0] = network.Layers[layer].Neurons[neuron].Weights[weight];
                     network.Layers[layer].Neurons[neuron].Weights[weight] = 0.0;
-                    //this._hiddenLayers[layer].setOffNeuron(neuron);
                     this.dataGridView1.Rows[i].Cells[3].Value = 0.0.ToString();
                 }
                 else {
@@ -135,7 +165,6 @@ namespace Neural
                     {
                         network.Layers[layer].Neurons[neuron].Weights[weight] = tempWeights[layer][neuron][weight][0];
                         tempWeights[layer][neuron][weight][0] = 0.0;
-                        //this._hiddenLayers[layer].setOnNeuron(neuron);
                         this.dataGridView1.Rows[i].Cells[3].Value = network.Layers[layer].Neurons[neuron].Weights[weight].ToString();
                     }
                 }
@@ -169,6 +198,7 @@ namespace Neural
                 try
                 {
                     network = Network.Load(openFileDialog1.FileName);
+
                 }
                 catch (IOException)
                 {
@@ -190,20 +220,8 @@ namespace Neural
         private void InitWork()
         {
             this.setNeuronsDataGrid();
-            //input
-            InputLayer input = new InputLayer(new double[1] { 1.0 });
-            this._inputLayer = input;
 
-            //hidden layers
-            this._hiddenLayers = new HiddenLayer[network.Layers.Length - 1];
-
-            for (int i = 0; i < network.Layers.Length - 1; i++)
-            {
-                int layerNeuronsCnt = network.Layers[i].Neurons.Length;
-                HiddenLayer hidden = new HiddenLayer(layerNeuronsCnt);
-                this._hiddenLayers[i] = hidden;
-            }
-
+            //init temp weights for remember check off user weights
             tempWeights = new double[network.Layers.Length][][][];
             for (int i = 0; i < network.Layers.Length; i++)
             {
@@ -218,8 +236,6 @@ namespace Neural
                     }
                 }
             }
-
-            this._output = new OutputLayer(1);
         }
 
         /**
@@ -280,6 +296,7 @@ namespace Neural
                     // allocate and set data
                     data = new double[i, colCountData];
                     Array.Copy(tempData, 0, data, 0, i * colCountData);
+                    this.testNetButton.Invoke(new Action(() => this.testNetButton.Enabled = true));
 
                 }
                 catch (Exception)
@@ -317,7 +334,7 @@ namespace Neural
             {
                 testError += Math.Abs(network.Compute(new double[2] { data[i, 0], data[i, 1] })[0] - data[i,2]);
             }
-            this.testErrorLabel.Text = (testError/data.GetLength(0)).ToString("F10");
+            this.errorTextBox.Text = (testError/data.GetLength(0)).ToString("F10");
         }
 
 
