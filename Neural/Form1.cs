@@ -353,13 +353,11 @@ namespace Neural
                     if (errorsList.Count - 1 >= 2000)
                     {
                         errorsList.RemoveAt(0);
-                        //errorsList.RemoveAt(0);
                         errorsList[0] = 5.0;
                     }
                     errorsList.Add(error);
                         
                     
-                    //error = teacher.RunEpoch(input, output);
                     validateError = 0.0;
                     for (int count = 0; count < validateInput.GetLength(0)-1; count++)
                     {
@@ -433,11 +431,18 @@ namespace Neural
         {
             String[] lines = new String[1];
             double[] res = new double[1];
+            double[] input = new double[colCountData - 1];
             using (System.IO.StreamWriter file = new System.IO.StreamWriter(@"C:\SpreadSheetTest.csv"))
                 for (int i = 0; i < data.GetLength(0); i++)
                 {
-                    res[0] = network.Compute(new double[2] { data[i, 0], data[i, 1] })[0];
-                    lines[0] = data[i, 2].ToString() + ";" + res[0].ToString("F8");
+                    //gather inputs for compute, n-1 inputs
+                    for (int j = 0; j < colCountData - 1; j++)
+                    {
+                        input[j] = data[i, j];
+                    }
+
+                    res[0] = network.Compute(input)[0];
+                    lines[0] = data[i, colCountData - 1].ToString() + ";" + res[0].ToString("F8");
                     file.WriteLine(lines[0].ToString());
                 }
             MessageBox.Show("Тестирование пройдено");

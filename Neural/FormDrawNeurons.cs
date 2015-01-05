@@ -330,9 +330,16 @@ namespace Neural
         {
             this.CheckNeurons();
             double testError = 0.0;
+            double[] input = new double[colCountData - 1];
+
             for (int i = 0; i < data.GetLength(0); i++)
             {
-                testError += Math.Abs(network.Compute(new double[2] { data[i, 0], data[i, 1] })[0] - data[i,2]);
+                //gather inputs for compute, n-1 inputs
+                for (int j = 0; j < colCountData - 1; j++)
+                {
+                    input[j] = data[i, j];
+                }
+                testError += Math.Abs(network.Compute(input)[0] - data[i, colCountData - 1]);
             }
             this.errorTextBox.Text = (testError/data.GetLength(0)).ToString("F10");
         }
