@@ -126,6 +126,9 @@ namespace Neural
                     data = new double[i, colCountData];
                     Array.Copy(tempData, 0, data, 0, i * colCountData);
 
+                    inputCountBox.Invoke(new Action(() => inputCountBox.Text = (colCountData-1).ToString()));
+                    fileTextBox.Invoke(new Action(() => fileTextBox.Text = openFileDialog.SafeFileName.ToString()));
+
                 }
                 catch (Exception)
                 {

@@ -79,6 +79,8 @@ namespace Neural
             this.loadDataButton = new System.Windows.Forms.Button();
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.alphaBox1 = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.neuronsBox = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
             this.momentumBox = new System.Windows.Forms.TextBox();
@@ -101,9 +103,10 @@ namespace Neural
             this.TestNetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ViewTopologyNetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.alphaBox1 = new System.Windows.Forms.TextBox();
             this.validChart = new AForge.Controls.Chart();
+            this.label8 = new System.Windows.Forms.Label();
+            this.inputCountBox = new System.Windows.Forms.TextBox();
+            this.fileTextBox = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.groupBox3.SuspendLayout();
@@ -126,6 +129,9 @@ namespace Neural
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.fileTextBox);
+            this.groupBox1.Controls.Add(this.inputCountBox);
+            this.groupBox1.Controls.Add(this.label8);
             this.groupBox1.Controls.Add(this.dataGridView1);
             this.groupBox1.Controls.Add(this.loadDataButton);
             this.groupBox1.Location = new System.Drawing.Point(3, 24);
@@ -147,7 +153,7 @@ namespace Neural
             // 
             // loadDataButton
             // 
-            this.loadDataButton.Location = new System.Drawing.Point(163, 430);
+            this.loadDataButton.Location = new System.Drawing.Point(6, 431);
             this.loadDataButton.Name = "loadDataButton";
             this.loadDataButton.Size = new System.Drawing.Size(124, 23);
             this.loadDataButton.TabIndex = 1;
@@ -175,6 +181,22 @@ namespace Neural
             this.groupBox3.TabIndex = 4;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Настройки";
+            // 
+            // alphaBox1
+            // 
+            this.alphaBox1.Location = new System.Drawing.Point(124, 98);
+            this.alphaBox1.Name = "alphaBox1";
+            this.alphaBox1.Size = new System.Drawing.Size(59, 20);
+            this.alphaBox1.TabIndex = 9;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(10, 98);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(43, 13);
+            this.label2.TabIndex = 8;
+            this.label2.Text = "Альфа:";
             // 
             // neuronsBox
             // 
@@ -361,22 +383,6 @@ namespace Neural
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Изменение ошибки обучения";
             // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(10, 98);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(43, 13);
-            this.label2.TabIndex = 8;
-            this.label2.Text = "Альфа:";
-            // 
-            // alphaBox1
-            // 
-            this.alphaBox1.Location = new System.Drawing.Point(124, 98);
-            this.alphaBox1.Name = "alphaBox1";
-            this.alphaBox1.Size = new System.Drawing.Size(59, 20);
-            this.alphaBox1.TabIndex = 9;
-            // 
             // validChart
             // 
             this.validChart.BackColor = System.Drawing.SystemColors.ControlLightLight;
@@ -387,6 +393,33 @@ namespace Neural
             this.validChart.Size = new System.Drawing.Size(319, 211);
             this.validChart.TabIndex = 4;
             this.validChart.Text = "chart1";
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(226, 434);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(82, 13);
+            this.label8.TabIndex = 3;
+            this.label8.Text = "Кол-во входов:";
+            // 
+            // inputCountBox
+            // 
+            this.inputCountBox.Enabled = false;
+            this.inputCountBox.Location = new System.Drawing.Point(314, 431);
+            this.inputCountBox.Name = "inputCountBox";
+            this.inputCountBox.ReadOnly = true;
+            this.inputCountBox.Size = new System.Drawing.Size(62, 20);
+            this.inputCountBox.TabIndex = 4;
+            // 
+            // fileTextBox
+            // 
+            this.fileTextBox.Enabled = false;
+            this.fileTextBox.Location = new System.Drawing.Point(136, 433);
+            this.fileTextBox.Name = "fileTextBox";
+            this.fileTextBox.ReadOnly = true;
+            this.fileTextBox.Size = new System.Drawing.Size(84, 20);
+            this.fileTextBox.TabIndex = 5;
             // 
             // Form1
             // 
@@ -405,6 +438,7 @@ namespace Neural
             this.Text = "MLP Learning Regression";
             this.Closing += new System.ComponentModel.CancelEventHandler(this.Form1_Closing);
             this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
@@ -434,6 +468,9 @@ namespace Neural
         private TextBox alphaBox1;
         private Label label2;
         private Chart validChart;
+        private TextBox inputCountBox;
+        private Label label8;
+        private TextBox fileTextBox;
 
     }
 }
